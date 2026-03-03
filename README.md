@@ -5,8 +5,6 @@ them, and querying the ingested data via a REST API.
 
 ![High Level Design](assets/HLD.svg)
 
-> [Edit on Excalidraw](https://excalidraw.com/#json=Mpti5ej08wBY5XJAYy3SH,Nd4UAlFH3_5z2dPxV7_eSQ)
-
 ## Architecture Overview
 
 ### Services
@@ -75,7 +73,6 @@ lifecycle. Trace context is propagated across the async boundary (HTTP → Redis
 | OTel collector HTTP | `localhost:4318` |
 | OTel collector gRPC | `localhost:4317` |
 
----
 
 ## Installation & Setup
 
