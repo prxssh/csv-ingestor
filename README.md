@@ -3,15 +3,9 @@
 A distributed system for uploading large CSV files, asynchronously processing
 them, and querying the ingested data via a REST API.
 
----
-
-## Architecture Diagram
-
 ![High Level Design](assets/HLD.svg)
 
 > [Edit on Excalidraw](https://excalidraw.com/#json=Mpti5ej08wBY5XJAYy3SH,Nd4UAlFH3_5z2dPxV7_eSQ)
-
----
 
 ## Architecture Overview
 
@@ -118,45 +112,6 @@ curl http://localhost/v1/movies  # → {"data":{...},"status":"success"}
 
 All other credentials (MongoDB, Redis, ClickHouse) use defaults defined in the
 Compose files.
-
-### Environment Variables
-
-<details>
-<summary>ingest-service</summary>
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | ✅ | — | MongoDB connection string |
-| `REDIS_URL` | ✅ | — | Redis connection string |
-| `OTEL_EXPORTER_URL` | ✅ | — | OTLP HTTP endpoint |
-| `S3_BUCKET` | ✅ | — | S3 bucket name |
-| `S3_REGION` | ✅ | — | AWS region |
-| `S3_ACCESS_KEY_ID` | ✅ | — | AWS access key |
-| `S3_SECRET_ACCESS_KEY` | ✅ | — | AWS secret key |
-| `S3_ENDPOINT` | — | — | Override for S3-compatible stores |
-| `S3_PRESIGN_TTL_MINS` | — | `60` | Presigned URL TTL in minutes |
-| `PORT` | — | `6970` | HTTP server port |
-| `ENVIRONMENT` | — | `dev` | Used in S3 key prefix |
-| `OTEL_SAMPLING_RATE` | — | `0.02` | Trace sampling rate (1.0 = 100%) |
-| `DATABASE_POOL_MIN_CONNECTIONS` | — | `1` | MongoDB min pool size |
-| `DATABASE_POOL_MAX_CONNECTIONS` | — | `2` | MongoDB max pool size |
-
-</details>
-
-<details>
-<summary>query-service</summary>
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | ✅ | — | MongoDB connection string |
-| `OTEL_EXPORTER_URL` | ✅ | — | OTLP HTTP endpoint |
-| `PORT` | — | `6969` | HTTP server port |
-| `ENVIRONMENT` | — | `dev` | Runtime environment label |
-| `OTEL_SAMPLING_RATE` | — | `0.02` | Trace sampling rate |
-| `DATABASE_POOL_MIN_CONNECTIONS` | — | `1` | MongoDB min pool size |
-| `DATABASE_POOL_MAX_CONNECTIONS` | — | `2` | MongoDB max pool size |
-
-</details>
 
 ### Scaling
 
