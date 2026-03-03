@@ -1,0 +1,208 @@
+{
+  "info": {
+    "_postman_id": "337c2333-b81c-469c-a0c7-627c01e72772",
+    "name": "CSV Upload and Review",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52858247",
+    "_collection_link": "https://go.postman.co/collection/52858247-337c2333-b81c-469c-a0c7-627c01e72772?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Upload - Initiate CSV Upload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"filename\": \"/Users/prxssh/oth/projects/csv-ingestor/data/movies_data_assignment.csv\",\n    \"content_type\": \"text/csv\",\n    \"total_size\": 19356450\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost/v1/uploads/multipart/init",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "v1",
+            "uploads",
+            "multipart",
+            "init"
+          ]
+        },
+        "description": "## Initiate Multipart Upload\n\nInitiates a multipart file upload session. This endpoint registers the upload job and returns a set of **presigned S3 URLs** — one for each part of the file — which should be used to upload the individual file chunks directly to S3.\n\n---\n\n### Request Body\n\n| Field | Type | Description |\n|---|---|---|\n| `filename` | `string` | The full path or name of the file to be uploaded. |\n| `content_type` | `string` | The MIME type of the file (e.g. `text/csv`). |\n| `total_size` | `integer` | The total size of the file in bytes. |\n\n**Example:**\n```json\n{\n  \"filename\": \"/Users/prxssh/oth/projects/csv-ingestor/data.csv\",\n  \"content_type\": \"text/csv\",\n  \"total_size\": 19356450\n}\n```\n\n---\n\n### Response — `201 Created`\n\n| Field | Type | Description |\n|---|---|---|\n| `data.job_id` | `string` | Unique identifier for the upload job. Used to track or reference this upload session. |\n| `data.upload_id` | `string` | The multipart upload ID assigned to this session. |\n| `data.parts` | `array` | List of upload parts, each containing a `part_number` and a presigned S3 URL. |\n| `data.parts[].part_number` | `integer` | The sequential index of this file part (starting at `1`). |\n| `data.parts[].url` | `string` | A presigned S3 URL to `PUT` the corresponding file chunk to. |\n| `status` | `string` | Indicates the result of the request (`\"success\"`). |\n\n**Example:**\n```json\n{\n  \"data\": {\n    \"job_id\": \"69a680129ada5587d9bfeda3\",\n    \"upload_id\": \"wwPi1JHjMZhsiXX_RDKbNYOniN1wCMgB2Cicz22T...\",\n    \"parts\": [\n      { \"part_number\": 1, \"url\": \"https://s3.ap-southeast-2.amazonaws.com/...\" },\n      { \"part_number\": 2, \"url\": \"https://s3.ap-southeast-2.amazonaws.com/...\" },\n      { \"part_number\": 3, \"url\": \"https://s3.ap-southeast-2.amazonaws.com/...\" },\n      { \"part_number\": 4, \"url\": \"https://s3.ap-southeast-2.amazonaws.com/...\" }\n    ]\n  },\n  \"status\": \"success\"\n}\n```\n\n---\n\n### Next Steps\n\nUse each presigned URL from `data.parts` to upload the corresponding chunk of the file via an HTTP `PUT` request directly to S3. Parts should be uploaded in order of their `part_number`. Once all parts are uploaded, call the **Upload - Complete** endpoint to finalize the upload."
+      },
+      "response": []
+    },
+    {
+      "name": "Upload - Complete Multipart Upload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"parts\": [\n      { \"part_number\": 1, \"etag\": \"<etag>\" },\n      { \"part_number\": 2, \"etag\": \"<etag>\" }\n    ]\n  }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost/v1/uploads/multipart/69a680129ada5587d9bfeda3/complete",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "v1",
+            "uploads",
+            "multipart",
+            "69a680129ada5587d9bfeda3",
+            "complete"
+          ]
+        },
+        "description": "## Complete Multipart Upload\n\nFinalizes a multipart upload session after the client has uploaded all parts directly to blob storage. The client collects the ETags returned by blob storage for each uploaded part and submits them here. The server then assembles the parts into the complete file.\n\n### Path Parameters\n\n| Parameter | Description |\n|-----------|-------------|\n| `upload_id` | The unique ID of the multipart upload session (e.g., `69a680129ada5587d9bfeda3`) |\n\n### Request Body\n\n```json\n{\n  \"parts\": [\n    { \"part_number\": 1, \"etag\": \"<etag>\" },\n    { \"part_number\": 2, \"etag\": \"<etag>\" }\n  ]\n}\n```\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `parts` | array | List of all parts uploaded to blob storage |\n| `parts[].part_number` | integer | The sequential number of the part (starting from `1`) |\n| `parts[].etag` | string | The ETag returned by blob storage when the part was uploaded |\n\n### Usage Notes\n\n- This endpoint should only be called **after all parts have been uploaded by the client to blob storage**.\n- The ETag for each part is returned by blob storage upon a successful part upload — collect these before calling this endpoint.\n- Include all parts in the `parts` array. Missing parts may cause the server to fail assembling the final file."
+      },
+      "response": []
+    },
+    {
+      "name": "Upload - Stop Multipart Upload",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost/v1/uploads/multipart/69a680129ada5587d9bfeda3/abort",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "v1",
+            "uploads",
+            "multipart",
+            "69a680129ada5587d9bfeda3",
+            "abort"
+          ]
+        },
+        "description": "## Abort Multipart Upload\n\nAborts an in-progress multipart upload session, cancelling all uploaded parts and freeing any associated server-side resources.\n\n**When to use:** Call this endpoint when a multipart upload needs to be cancelled — for example, if the user cancels the operation, an error occurs mid-upload, or the upload is no longer needed. Once aborted, the upload session cannot be resumed.\n\n### Path Parameters\n\n| Parameter | Description |\n|-----------|-------------|\n| `uploadId` | The unique ID of the multipart upload session to abort (e.g. `69a680129ada5587d9bfeda3`) |\n\n### Response\n\n**200 OK** — The upload was successfully aborted.\n\n```json\n{\n  \"data\": {\n    \"message\": \"upload aborted\"\n  },\n  \"status\": \"success\"\n}\n```"
+      },
+      "response": []
+    },
+    {
+      "name": "Upload - Get Status",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost/v1/uploads/69a676de9ada5587d9bfed9f/status",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "v1",
+            "uploads",
+            "69a676de9ada5587d9bfed9f",
+            "status"
+          ]
+        },
+        "description": "## Upload - Status\n\nRetrieves the current status of a multipart file upload by its upload ID. Use this endpoint to monitor upload progress, check the status of individual parts, and confirm when the upload has been fully processed.\n\n---\n\n### Method & URL\n\n```\nGET /v1/uploads/:uploadId/status\n```\n\n**Path Parameter:**\n\n| Parameter  | Description                                      |\n|------------|--------------------------------------------------|\n| `uploadId` | The unique ID of the upload (e.g. `69a676de9ada5587d9bfed9f`) |\n\n---\n\n### Response\n\nReturns a JSON object with a `data` field containing the full upload record and a top-level `status` field indicating the result of the request.\n\n**Sample Response (`200 OK`):**\n\n```json\n{\n  \"data\": {\n    \"ID\": \"69a676de9ada5587d9bfed9f\",\n    \"Key\": \"uploads/dev/2026/03/03/037070fa-8f85-48c...\",\n    \"UploadID\": \"X2_fkgBy0DwDyw8yqkYPpKITToYPLoXteCMA_JEm...\",\n    \"Filename\": \"movies_data_assignment.csv\",\n    \"ContentType\": \"text/csv\",\n    \"TotalParts\": 4,\n    \"PartSize\": 5242880,\n    \"TotalSize\": 19356450,\n    \"Parts\": [\n      { \"PartNumber\": 1, \"Status\": \"completed\", \"ETag\": \"8bebb028...\", \"UpdatedAt\": \"2026-03-03T05:51:56.097Z\" },\n      { \"PartNumber\": 2, \"Status\": \"completed\", \"ETag\": \"ea557f24...\", \"UpdatedAt\": \"2026-03-03T05:51:56.101Z\" },\n      { \"PartNumber\": 3, \"Status\": \"completed\", \"ETag\": \"9b629bb3...\", \"UpdatedAt\": \"2026-03-03T05:51:56.103Z\" },\n      { \"PartNumber\": 4, \"Status\": \"completed\", \"ETag\": \"274fd7e0...\", \"UpdatedAt\": \"2026-03-03T05:51:56.105Z\" }\n    ],\n    \"Status\": \"processed\",\n    \"ErrorMessage\": \"\",\n    \"CreatedAt\": \"2026-03-03T05:51:26.918Z\",\n    \"UpdatedAt\": \"2026-03-03T05:52:00.717Z\"\n  },\n  \"status\": \"success\"\n}\n```\n\n---\n\n### Key Response Fields\n\n| Field           | Type     | Description                                                                 |\n|-----------------|----------|-----------------------------------------------------------------------------|\n| `ID`            | `string` | Unique identifier for the upload record                                     |\n| `Key`           | `string` | Storage path/key where the file is stored                                   |\n| `UploadID`      | `string` | Multipart upload session ID (used internally for part assembly)             |\n| `Filename`      | `string` | Original name of the uploaded file                                          |\n| `ContentType`   | `string` | MIME type of the file (e.g. `text/csv`)                                     |\n| `TotalParts`    | `number` | Total number of parts the file was split into                               |\n| `PartSize`      | `number` | Size of each part in bytes (5 MB = `5242880`)                               |\n| `TotalSize`     | `number` | Total file size in bytes                                                    |\n| `Parts`         | `array`  | List of individual parts with their `PartNumber`, `Status`, `ETag`, and `UpdatedAt` |\n| `Status`        | `string` | Overall upload status — e.g. `processed`, `pending`, `failed`              |\n| `ErrorMessage`  | `string` | Error details if the upload failed; empty string on success                 |\n| `CreatedAt`     | `string` | ISO 8601 timestamp of when the upload was initiated                         |\n| `UpdatedAt`     | `string` | ISO 8601 timestamp of the last status update                                |\n| `status`        | `string` | Top-level response status — `\"success\"` or `\"error\"`                       |"
+      },
+      "response": []
+    },
+    {
+      "name": "Movies - List Paginated",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost/v1/movies?year=1995&language=English&sort_by=vote_average&sort_dir=desc&page=1&limit=10",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "v1",
+            "movies"
+          ],
+          "query": [
+            {
+              "key": "year",
+              "value": "1995"
+            },
+            {
+              "key": "language",
+              "value": "English"
+            },
+            {
+              "key": "sort_by",
+              "value": "vote_average"
+            },
+            {
+              "key": "sort_dir",
+              "value": "desc"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "## Movies - List\n\nRetrieves a paginated list of movies with support for filtering by year and language, and sorting by various fields. This endpoint is useful for browsing and discovering movies based on specific criteria.\n\n---\n\n## Query Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `year` | integer | No | Filter movies by release year (e.g., `1995`) |\n| `language` | string | No | Filter movies by language (e.g., `English`) |\n| `sort_by` | string | No | Field to sort results by (e.g., `vote_average`, `release_date`, `revenue`) |\n| `sort_dir` | string | No | Sort direction — `asc` for ascending or `desc` for descending |\n| `page` | integer | No | Page number for pagination (default: `1`) |\n| `limit` | integer | No | Number of results per page (e.g., `10`) |\n\n---\n\n## Response Structure\n\nThe response returns a JSON object with a top-level `status` field and a `data` object containing the movies array along with pagination metadata.\n\n```json\n{\n  \"status\": \"success\",\n  \"data\": {\n    \"movies\": [ ... ],\n    \"total\": 421,\n    \"page\": 1,\n    \"limit\": 10,\n    \"total_pages\": 43\n  }\n}\n```\n\n### `data.movies[]` — Movie Object Fields\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `id` | string | Unique identifier for the movie |\n| `title` | string | Display title of the movie |\n| `original_title` | string | Original title of the movie |\n| `original_language` | string | ISO language code of the original language (e.g., `en`) |\n| `languages` | array of strings | All languages available for the movie |\n| `overview` | string | Short plot summary or description |\n| `release_date` | string (ISO 8601) | Release date of the movie |\n| `year` | integer | Release year |\n| `runtime` | integer | Duration of the movie in minutes |\n| `status` | string | Release status (e.g., `Released`) |\n| `budget` | integer | Production budget in USD |\n| `revenue` | integer | Box office revenue in USD |\n| `vote_average` | number | Average user rating score |\n| `vote_count` | integer | Total number of user votes |\n| `genre_id` | integer | ID of the primary genre |\n| `production_company_id` | integer | ID of the production company |\n| `created_at` | string (ISO 8601) | Timestamp when the record was created |\n| `updated_at` | string (ISO 8601) | Timestamp when the record was last updated |\n\n### Pagination Metadata\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `total` | integer | Total number of movies matching the filters |\n| `page` | integer | Current page number |\n| `limit` | integer | Number of results per page |\n| `total_pages` | integer | Total number of pages available |\n"
+      },
+      "response": []
+    },
+    {
+      "name": "Movies - Get By ID",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost/v1/movies/69a676fd2514042fb3c4e2dc",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "v1",
+            "movies",
+            "69a676fd2514042fb3c4e2dc"
+          ]
+        },
+        "description": "## Movies - Get Movie By ID\n\nRetrieves the details of a single movie by its unique identifier.\n\n---\n\n### Endpoint\n\n```\nGET /v1/movies/:id\n```\n\n---\n\n### Path Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `id` | `string` | ✅ Yes | The unique MongoDB ObjectID of the movie (e.g., `69a676fd2514042fb3c4e2dc`) |\n\n---\n\n### Response\n\n**Status Code:** `200 OK`\n\nReturns a JSON object with a `data` field containing the movie details and a `status` field indicating the result.\n\n```json\n{\n  \"data\": {\n    \"id\": \"69a676fd2514042fb3c4e2dc\",\n    \"budget\": 0,\n    \"original_language\": \"en\",\n    \"original_title\": \"Reckless\",\n    \"overview\": \"On Christmas eve, a relentlessly cheerful...\",\n    \"release_date\": \"1995-11-17T00:00:00Z\",\n    \"year\": 1995,\n    \"revenue\": 0,\n    \"runtime\": 91,\n    \"status\": \"Released\",\n    \"title\": \"Reckless\",\n    \"vote_average\": 10,\n    \"vote_count\": 1,\n    \"production_company_id\": 2492,\n    \"genre_id\": 14,\n    \"languages\": [\"English\"],\n    \"created_at\": \"2026-03-03T05:51:57.569Z\",\n    \"updated_at\": \"2026-03-03T06:04:41.774Z\"\n  },\n  \"status\": \"success\"\n}\n```\n\n#### Response Fields\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `data.id` | `string` | Unique identifier of the movie |\n| `data.budget` | `number` | Production budget of the movie (in USD) |\n| `data.original_language` | `string` | Original language code (e.g., `en`) |\n| `data.original_title` | `string` | Original title of the movie |\n| `data.overview` | `string` | Short plot summary of the movie |\n| `data.release_date` | `string (ISO 8601)` | Official release date of the movie |\n| `data.year` | `number` | Release year |\n| `data.revenue` | `number` | Box office revenue (in USD) |\n| `data.runtime` | `number` | Duration of the movie in minutes |\n| `data.status` | `string` | Release status (e.g., `Released`) |\n| `data.title` | `string` | Display title of the movie |\n| `data.vote_average` | `number` | Average user rating score |\n| `data.vote_count` | `number` | Total number of user votes |\n| `data.production_company_id` | `number` | ID of the associated production company |\n| `data.genre_id` | `number` | ID of the primary genre |\n| `data.languages` | `array of strings` | List of languages available for the movie |\n| `data.created_at` | `string (ISO 8601)` | Timestamp when the record was created |\n| `data.updated_at` | `string (ISO 8601)` | Timestamp when the record was last updated |\n| `status` | `string` | Top-level response status (`\"success\"` on success) |"
+      },
+      "response": []
+    }
+  ]
+}

@@ -2,8 +2,6 @@
 
 A distributed system for uploading large CSV files, asynchronously processing them, and querying the ingested data via a REST API.
 
----
-
 ## Services
 
 ### ingest-service
@@ -24,8 +22,6 @@ Read-only REST API for querying ingested movie data.
 - Supports filtering by year and language, sorting by release date or vote average, and pagination
 - Fully instrumented with OpenTelemetry
 
----
-
 ## Prerequisites
 
 - [Docker Desktop](https://docs.docker.com/desktop/) (includes Docker Compose v2)
@@ -39,8 +35,6 @@ docker --version        # Docker version 24+
 docker compose version  # Docker Compose version v2+
 jq --version            # jq-1.6+
 ```
-
----
 
 ## Running Locally
 
@@ -111,8 +105,6 @@ source dev.env
 make run
 ```
 
----
-
 ## API Reference
 
 All routes are accessed via Nginx on port 80. The service listens on port 8080 internally.
@@ -164,8 +156,6 @@ curl -s -X POST http://localhost/v1/uploads/multipart/init \
 
 Part count is calculated as `ceil(total_size / 5MB)`.
 
----
-
 #### `PUT <presigned_url>`  *(direct to S3)*
 
 Upload each part directly to S3 using the presigned URL. This request goes to S3, not the service.
@@ -202,8 +192,6 @@ curl -s -X PATCH http://localhost/v1/uploads/multipart/<JOB_ID>/part \
 { "data": { "part_number": 1, "status": "completed" }, "status": "success" }
 ```
 
----
-
 #### `GET /v1/uploads/multipart/:id/presign?parts=1,2,3`
 
 Returns fresh presigned URLs for the specified parts. Used to resume interrupted uploads after URLs expire.
@@ -227,8 +215,6 @@ curl -s "http://localhost/v1/uploads/multipart/<JOB_ID>/presign?parts=1,2,3" | j
 ```
 
 Returns `409 Conflict` if the job is already completed or aborted.
-
----
 
 #### `POST /v1/uploads/multipart/:id/complete`
 
@@ -267,8 +253,6 @@ curl -s -X POST http://localhost/v1/uploads/multipart/<JOB_ID>/complete \
 }
 ```
 
----
-
 #### `DELETE /v1/uploads/multipart/:id/abort`
 
 Aborts an in-progress upload. Cleans up the multipart upload on S3. Idempotent — aborting an already-aborted job is a no-op.
@@ -282,8 +266,6 @@ curl -s -X DELETE http://localhost/v1/uploads/multipart/<JOB_ID>/abort | jq .
 ```json
 { "data": { "message": "upload aborted" }, "status": "success" }
 ```
-
----
 
 #### `GET /v1/uploads/:id/status`
 
@@ -319,8 +301,6 @@ pending → uploading → completed → processing → processed
                     ↘ aborted
                     ↘ failed
 ```
-
----
 
 ### query-service
 
@@ -497,6 +477,24 @@ chmod +x scripts/upload.sh
 `/tmp/upload_<filename>.jobid`. If interrupted (Ctrl+C, crash), re-run the
 script — it automatically detects the state file, fetches fresh presigned URLs
 for pending parts from the server, and resumes from where it stopped.
+
+---
+
+## Postman Collection
+
+A ready-to-use Postman collection covering all endpoints is included at:
+
+```
+data/CSV Service Postman Collection.postman_collection.json
+```
+
+**Import steps:**
+
+1. Open Postman → **Import** → select the file above.
+2. Set the `base_url` collection variable to `http://localhost` (default).
+3. Run requests in order: **Init → Upload Parts → Report Parts → Complete → Query**.
+
+The collection includes pre-configured request bodies and example responses for every endpoint in both `ingest-service` and `query-service`.
 
 ---
 
