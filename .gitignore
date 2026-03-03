@@ -5,3 +5,19 @@ dev.env
 
 # Binaries
 */build/
+
+# Logs
+*.log
+**/logs/
+
+# MongoDB keyfile (generated locally, contains secrets)
+devops/mongo-keyfile
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Data files (large CSVs, local test data)
+data/*.csv
+data/*.xlsx
