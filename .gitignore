@@ -1,0 +1,7 @@
+# Environment files (may contain secrets)
+dev.env
+.env
+*.env
+
+# Binaries
+*/build/

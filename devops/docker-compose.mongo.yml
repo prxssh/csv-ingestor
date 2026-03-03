@@ -1,0 +1,76 @@
+# MongoDB Replica Set Configuration
+# Primary + 2 Secondary nodes for read replicas
+
+services:
+  mongo-primary:
+    image: mongo:7.0
+    container_name: mongo-primary
+    entrypoint: ["/mongo-entrypoint.sh"]
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017", "--keyFile", "/etc/mongo/mongo-keyfile"]
+    ports:
+      - "${MONGO_PRIMARY_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
+    volumes:
+      - mongo-primary-data:/data/db
+      - ./mongo-keyfile:/tmp/mongo-keyfile-src:ro
+      - ./mongo-entrypoint.sh:/mongo-entrypoint.sh:ro
+    healthcheck:
+      test: |
+        echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo-primary:27017',priority:2},{_id:1,host:'mongo-secondary-1:27017',priority:1},{_id:2,host:'mongo-secondary-2:27017',priority:1}]}) }" | mongosh -u ${MONGO_ROOT_USER:-admin} -p ${MONGO_ROOT_PASSWORD:-admin123} --authenticationDatabase admin
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  mongo-secondary-1:
+    image: mongo:7.0
+    container_name: mongo-secondary-1
+    entrypoint: ["/mongo-entrypoint.sh"]
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017", "--keyFile", "/etc/mongo/mongo-keyfile"]
+    ports:
+      - "${MONGO_SECONDARY_1_PORT:-27018}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
+    volumes:
+      - mongo-secondary-1-data:/data/db
+      - ./mongo-keyfile:/tmp/mongo-keyfile-src:ro
+      - ./mongo-entrypoint.sh:/mongo-entrypoint.sh:ro
+    depends_on:
+      - mongo-primary
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  mongo-secondary-2:
+    image: mongo:7.0
+    container_name: mongo-secondary-2
+    entrypoint: ["/mongo-entrypoint.sh"]
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017", "--keyFile", "/etc/mongo/mongo-keyfile"]
+    ports:
+      - "${MONGO_SECONDARY_2_PORT:-27019}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
+    volumes:
+      - mongo-secondary-2-data:/data/db
+      - ./mongo-keyfile:/tmp/mongo-keyfile-src:ro
+      - ./mongo-entrypoint.sh:/mongo-entrypoint.sh:ro
+    depends_on:
+      - mongo-primary
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mongo-primary-data:
+    name: mongo-primary-data
+  mongo-secondary-1-data:
+    name: mongo-secondary-1-data
+  mongo-secondary-2-data:
+    name: mongo-secondary-2-data

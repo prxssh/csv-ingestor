@@ -1,0 +1,14 @@
+# Main orchestration file
+# Owns the shared app-network; all included files attach to it.
+
+include:
+  - docker-compose.mongo.yml
+  - docker-compose.redis.yml
+  - docker-compose.signoz.yml
+  - docker-compose.app.yml
+  - docker-compose.nginx.yml
+
+networks:
+  app-network:
+    driver: bridge
+    name: app-network

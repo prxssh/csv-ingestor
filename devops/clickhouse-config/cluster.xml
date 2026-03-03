@@ -1,0 +1,19 @@
+<clickhouse>
+    <remote_servers>
+        <cluster>
+            <shard>
+                <replica>
+                    <host>clickhouse</host>
+                    <port>9000</port>
+                    <user>signoz</user>
+                    <password>signoz123</password>
+                </replica>
+            </shard>
+        </cluster>
+    </remote_servers>
+    <macros>
+        <shard>01</shard>
+        <replica>clickhouse</replica>
+        <cluster>cluster</cluster>
+    </macros>
+</clickhouse>

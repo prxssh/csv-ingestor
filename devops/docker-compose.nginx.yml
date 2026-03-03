@@ -1,0 +1,27 @@
+# Nginx Load Balancer
+# Handles traffic routing, load balancing, and rate limiting
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-lb
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - ingest-service
+      - query-service
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:80/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
