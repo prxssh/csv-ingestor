@@ -113,6 +113,29 @@ curl http://localhost/v1/movies  # → {"data":{...},"status":"success"}
 All other credentials (MongoDB, Redis, ClickHouse) use defaults defined in the
 Compose files.
 
+
+### Upload Script
+
+An interactive shell script for testing the full upload flow end-to-end with automatic resume support.
+
+```bash
+chmod +x scripts/upload.sh
+./scripts/upload.sh
+```
+
+**Requirements:** `bash`, `curl`, `jq`, `dd`
+
+**How it works:**
+
+The script automatically handles resumeable, crash-safe uploads:
+
+1. **Checks for existing uploads** — looks for a saved `job_id` in `/tmp/upload_<filename>.jobid`
+2. **Resumes if found** — fetches upload status, identifies completed parts, and uploads only the remaining parts
+3. **Initializes if new** — creates a new multipart upload and saves the `job_id` for future resume
+4. **Auto-cleanup** — removes the state file once the upload completes successfully
+
+If interrupted (Ctrl+C, crash, expired URLs), simply re-run the script with the same file — it will automatically resume from where it stopped.
+
 ### Scaling
 
 Both services are stateless and horizontally scalable:
@@ -151,25 +174,3 @@ pending → uploading → completed → processing → processed
                                ↘ aborted
                                ↘ failed
 ```
-
-### Upload Script
-
-An interactive shell script for testing the full upload flow end-to-end with automatic resume support.
-
-```bash
-chmod +x scripts/upload.sh
-./scripts/upload.sh
-```
-
-**Requirements:** `bash`, `curl`, `jq`, `dd`
-
-**How it works:**
-
-The script automatically handles resumeable, crash-safe uploads:
-
-1. **Checks for existing uploads** — looks for a saved `job_id` in `/tmp/upload_<filename>.jobid`
-2. **Resumes if found** — fetches upload status, identifies completed parts, and uploads only the remaining parts
-3. **Initializes if new** — creates a new multipart upload and saves the `job_id` for future resume
-4. **Auto-cleanup** — removes the state file once the upload completes successfully
-
-If interrupted (Ctrl+C, crash, expired URLs), simply re-run the script with the same file — it will automatically resume from where it stopped.
