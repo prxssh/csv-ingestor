@@ -158,7 +158,7 @@ An interactive shell script for testing the full upload flow end-to-end with aut
 
 ```bash
 chmod +x scripts/upload.sh
-./scripts/upload.sh [base_url]   # default: http://localhost
+./scripts/upload.sh
 ```
 
 **Requirements:** `bash`, `curl`, `jq`, `dd`
