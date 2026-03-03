@@ -45,7 +45,13 @@ func (r *Repository) list(ctx context.Context, filter ListMoviesFilter) (*ListMo
 		query["languages"] = *filter.Language
 	}
 
-	total, err := r.coll.CountDocuments(ctx, query)
+	var total int64
+	var err error
+	if len(query) == 0 {
+		total, err = r.coll.EstimatedDocumentCount(ctx)
+	} else {
+		total, err = r.coll.CountDocuments(ctx, query)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("count movies: %w", err)
 	}

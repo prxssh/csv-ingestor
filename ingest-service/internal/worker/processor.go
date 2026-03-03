@@ -238,5 +238,12 @@ func (p *Processor) processCSV(ctx context.Context, jobID, key string) error {
 		"skipped", totalSkipped.Load(),
 	)
 
+	if totalRows.Load() == 0 && totalSkipped.Load() > 0 {
+		return fmt.Errorf(
+			"all %d rows were skipped due to parsing errors",
+			totalSkipped.Load(),
+		)
+	}
+
 	return nil
 }

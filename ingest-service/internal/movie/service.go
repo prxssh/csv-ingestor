@@ -148,7 +148,12 @@ func parseInt64(s string) (int64, error) {
 	if s == "" {
 		return 0, nil
 	}
-	return strconv.ParseInt(s, 10, 64)
+	// Try parsing as float first (handles "0.0", "1200000.0", etc.)
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int64(f), nil
 }
 
 func parseInt32(s string) (int32, error) {
@@ -156,8 +161,12 @@ func parseInt32(s string) (int32, error) {
 	if s == "" {
 		return 0, nil
 	}
-	v, err := strconv.ParseInt(s, 10, 32)
-	return int32(v), err
+	// Try parsing as float first (handles "0.0", "1200000.0", etc.)
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int32(f), nil
 }
 
 func parseFloat64(s string) (float64, error) {

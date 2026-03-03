@@ -60,7 +60,14 @@ func (h *Handler) GetMovie(ctx *gin.Context) {
 			apiutil.Error(ctx, http.StatusBadRequest, "invalid movie id")
 			return
 		}
-		slog.ErrorContext(ctx.Request.Context(), "get movie failed", "movie_id", uri.ID, "error", err)
+		slog.ErrorContext(
+			ctx.Request.Context(),
+			"get movie failed",
+			"movie_id",
+			uri.ID,
+			"error",
+			err,
+		)
 		apiutil.InternalError(ctx)
 		return
 	}

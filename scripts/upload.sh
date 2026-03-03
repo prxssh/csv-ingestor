@@ -98,83 +98,9 @@ complete_upload() {
     -d "{\"parts\":[$parts_json]}" | jq .
 }
 
-run_upload_loop() {
-  local file=$1 job_id=$2 total_parts=$3 init_response=$4
-  local file_size
-  file_size=$(wc -c < "$file")
+# ── Main Upload Flow ─────────────────────────────────────────────────────────
 
-  local etags=()
-
-  for i in $(seq 0 $((total_parts - 1))); do
-    local part_num=$((i + 1))
-    local offset=$((i * PART_SIZE))
-    local bytes
-
-    if [ "$part_num" -eq "$total_parts" ]; then
-      bytes=$((file_size - offset))
-    else
-      bytes=$PART_SIZE
-    fi
-
-    local url
-    url=$(echo "$init_response" | jq -r ".data.parts[$i].url")
-
-    printf "\r  Uploading: %d/%d  " "$part_num" "$total_parts"
-
-    local etag
-    if ! etag=$(upload_part "$file" "$part_num" "$offset" "$bytes" "$url" "$job_id"); then
-      printf "\n"
-      echo "  Error: No ETag returned for part $part_num. Aborting."
-      exit 1
-    fi
-
-    etags+=("$etag")
-  done
-
-  printf "\r  Uploading: %d/%d ✓\n" "$total_parts" "$total_parts"
-
-  print_summary "$total_parts" "$file_size" "${etags[@]}"
-  complete_upload "$job_id" "${etags[@]}"
-}
-
-# ── Flows ─────────────────────────────────────────────────────────────────────
-
-flow_success() {
-  local file=$1
-  local filename file_size total_parts
-
-  filename=$(basename "$file")
-  file_size=$(wc -c < "$file")
-  total_parts=$(( (file_size + PART_SIZE - 1) / PART_SIZE ))
-
-  divider
-  echo "  File:        $filename"
-  echo "  Size:        $file_size bytes"
-  echo "  Total Parts: $total_parts"
-  divider
-  echo ""
-
-  echo "Initializing multipart upload..."
-  local init_response
-  init_response=$(curl -s -X POST "$BASE_URL/v1/uploads/multipart/init" \
-    -H "Content-Type: application/json" \
-    -d "{\"filename\":\"$filename\",\"content_type\":\"text/csv\",\"total_size\":$file_size}")
-
-  if [ "$(echo "$init_response" | jq -r '.status')" != "success" ]; then
-    echo "Error: init failed — $(echo "$init_response" | jq -r '.error // .message // "unknown error"')"
-    echo "Response: $init_response"
-    exit 1
-  fi
-
-  local job_id
-  job_id=$(echo "$init_response" | jq -r '.data.job_id')
-  echo "Job ID: $job_id"
-  echo ""
-
-  run_upload_loop "$file" "$job_id" "$total_parts" "$init_response"
-}
-
-flow_resumeable() {
+do_upload() {
   local file=$1
   local filename file_size total_parts
 
@@ -329,7 +255,7 @@ flow_resumeable() {
 
 echo ""
 divider
-echo "  CSV Multipart Upload"
+echo "  CSV Multipart Upload (Resumeable)"
 divider
 echo ""
 
@@ -341,16 +267,4 @@ if [ ! -f "$FILE" ]; then
   exit 1
 fi
 
-echo "Select a flow:"
-echo ""
-echo "  1) Multipart Upload — Success Path"
-echo "  2) Multipart Upload — Resumeable (crash-safe)"
-echo ""
-read -rp "Choice [1-2]: " CHOICE
-echo ""
-
-case "$CHOICE" in
-  1) flow_success "$FILE" ;;
-  2) flow_resumeable "$FILE" ;;
-  *) echo "Invalid choice"; exit 1 ;;
-esac
+do_upload "$FILE"

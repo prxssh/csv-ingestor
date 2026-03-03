@@ -199,7 +199,7 @@ pending → uploading → completed → processing → processed
 
 ### Upload Script
 
-An interactive shell script for testing the full upload flow end-to-end.
+An interactive shell script for testing the full upload flow end-to-end with automatic resume support.
 
 ```bash
 chmod +x scripts/upload.sh
@@ -208,12 +208,13 @@ chmod +x scripts/upload.sh
 
 **Requirements:** `bash`, `curl`, `jq`, `dd`
 
-Two flows are available:
+**How it works:**
 
-**1 — Success Path** — uploads all parts sequentially, prints a summary table,
-and completes the upload.
+The script automatically handles resumeable, crash-safe uploads:
 
-**2 — Resumeable** — crash-safe upload. Saves the `job_id` to
-`/tmp/upload_<filename>.jobid`. If interrupted (Ctrl+C, crash, expired URLs),
-re-run the script — it detects the state file, fetches fresh presigned URLs for
-pending parts, and resumes from where it stopped.
+1. **Checks for existing uploads** — looks for a saved `job_id` in `/tmp/upload_<filename>.jobid`
+2. **Resumes if found** — fetches upload status, identifies completed parts, and uploads only the remaining parts
+3. **Initializes if new** — creates a new multipart upload and saves the `job_id` for future resume
+4. **Auto-cleanup** — removes the state file once the upload completes successfully
+
+If interrupted (Ctrl+C, crash, expired URLs), simply re-run the script with the same file — it will automatically resume from where it stopped.

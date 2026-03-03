@@ -85,17 +85,33 @@ func (d *DB) createMovieIndexes(ctx context.Context) error {
 				SetUnique(true).
 				SetName("idx_title_release"),
 		},
-		// Filter by year
+		// Sort by release_date (no filters)
 		{
-			Keys:    bson.D{bson.E{Key: "year", Value: 1}},
-			Options: options.Index().SetName("idx_year"),
+			Keys:    bson.D{bson.E{Key: "release_date", Value: -1}},
+			Options: options.Index().SetName("idx_release_date"),
 		},
-		// Filter by language
+		// Sort by vote_average (no filters)
 		{
-			Keys:    bson.D{bson.E{Key: "languages", Value: 1}},
-			Options: options.Index().SetName("idx_languages"),
+			Keys:    bson.D{bson.E{Key: "vote_average", Value: -1}},
+			Options: options.Index().SetName("idx_vote_average"),
 		},
-		// Compound — year + language + release_date
+		// Filter by language + sort by release_date
+		{
+			Keys: bson.D{
+				bson.E{Key: "languages", Value: 1},
+				bson.E{Key: "release_date", Value: -1},
+			},
+			Options: options.Index().SetName("idx_lang_date"),
+		},
+		// Filter by language + sort by vote_average
+		{
+			Keys: bson.D{
+				bson.E{Key: "languages", Value: 1},
+				bson.E{Key: "vote_average", Value: -1},
+			},
+			Options: options.Index().SetName("idx_lang_rating"),
+		},
+		// Filter by year + language + sort by release_date
 		{
 			Keys: bson.D{
 				bson.E{Key: "year", Value: 1},
@@ -104,7 +120,7 @@ func (d *DB) createMovieIndexes(ctx context.Context) error {
 			},
 			Options: options.Index().SetName("idx_year_lang_date"),
 		},
-		// Compound — year + language + vote_average
+		// Filter by year + language + sort by vote_average
 		{
 			Keys: bson.D{
 				bson.E{Key: "year", Value: 1},
