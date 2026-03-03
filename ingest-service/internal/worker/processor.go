@@ -164,7 +164,7 @@ func (p *Processor) processCSV(ctx context.Context, jobID, key string) error {
 		defer close(batches)
 
 		batch := make([]movie.Movie, 0, batchSize)
-		lineNum := 1
+		lineNum := 2 // header already consumed above, first data row is line 2
 
 		for {
 			record, err := reader.Read()

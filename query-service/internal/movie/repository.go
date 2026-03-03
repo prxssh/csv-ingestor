@@ -22,7 +22,7 @@ func NewRepository(coll *mongo.Collection) *Repository {
 func (r *Repository) findByID(ctx context.Context, id string) (*Movie, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, fmt.Errorf("invalid movie id: %w", err)
+		return nil, ErrInvalidMovieID
 	}
 
 	var movie Movie

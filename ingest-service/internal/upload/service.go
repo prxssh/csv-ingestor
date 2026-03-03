@@ -88,12 +88,19 @@ func (s *Service) InitUpload(
 		Status:      JobStatusPending,
 	})
 	if err != nil {
-		_ = s.store.AbortMultipartUpload(ctx, key, result.UploadID)
+		if abortErr := s.store.AbortMultipartUpload(ctx, key, result.UploadID); abortErr != nil {
+			slog.ErrorContext(ctx, "failed to abort orphaned multipart upload",
+				"key", key, "upload_id", result.UploadID, "error", abortErr)
+		}
 		return nil, fmt.Errorf("create upload job: %w", err)
 	}
 
 	presigned, err := s.presignParts(ctx, key, result.UploadID, partsRange(1, totalParts))
 	if err != nil {
+		if abortErr := s.store.AbortMultipartUpload(ctx, key, result.UploadID); abortErr != nil {
+			slog.ErrorContext(ctx, "failed to abort orphaned multipart upload",
+				"key", key, "upload_id", result.UploadID, "error", abortErr)
+		}
 		return nil, fmt.Errorf("presign parts: %w", err)
 	}
 
@@ -246,14 +253,7 @@ func (s *Service) ReportPartUploaded(
 
 	if job.Status == JobStatusPending {
 		if err := s.repo.updateStatus(ctx, jobID, JobStatusUploading); err != nil {
-			slog.WarnContext(
-				ctx,
-				"failed to transition job to uploading",
-				"job_id",
-				jobID,
-				"error",
-				err,
-			)
+			return fmt.Errorf("transition job to uploading: %w", err)
 		}
 	}
 
@@ -265,7 +265,7 @@ func (s *Service) presignParts(
 	key, uploadID string,
 	partNumbers []int32,
 ) ([]PresignedPartResponse, error) {
-	ttl := 60 * time.Minute
+	ttl := time.Duration(config.Env.S3PresignTTLMins) * time.Minute
 	out := make([]PresignedPartResponse, 0, len(partNumbers))
 	for _, n := range partNumbers {
 		p, err := s.store.PresignPartUpload(ctx, key, uploadID, n, ttl)

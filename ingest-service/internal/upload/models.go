@@ -32,7 +32,7 @@ type InitUploadResponse struct {
 }
 
 type CompletedPartRequest struct {
-	PartNumber int32  `json:"part_number" binding:"required"`
+	PartNumber int32  `json:"part_number" binding:"required,min=1"`
 	ETag       string `json:"etag"        binding:"required"`
 }
 

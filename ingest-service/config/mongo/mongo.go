@@ -26,7 +26,7 @@ type DB struct {
 func NewClient(ctx context.Context) (*DB, error) {
 	opts := options.Client().
 		ApplyURI(config.Env.DatabaseURL).
-		SetReadPreference(readpref.Nearest()).
+		SetReadPreference(readpref.PrimaryPreferred()).
 		SetMaxPoolSize(uint64(config.Env.DatabasePoolMaxConnections)).
 		SetMinPoolSize(uint64(config.Env.DatabasePoolMinConnections)).
 		SetMaxConnIdleTime(30 * time.Second).

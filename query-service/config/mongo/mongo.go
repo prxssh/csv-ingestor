@@ -78,12 +78,12 @@ func (d *DB) createMovieIndexes(ctx context.Context) error {
 		// Unique — prevents duplicate movies on re-upload
 		{
 			Keys: bson.D{
-				bson.E{Key: "title", Value: 1},
+				bson.E{Key: "original_title", Value: 1},
 				bson.E{Key: "release_date", Value: 1},
 			},
 			Options: options.Index().
 				SetUnique(true).
-				SetName("idx_title_release_date"),
+				SetName("idx_title_release"),
 		},
 		// Filter by year
 		{

@@ -55,8 +55,7 @@ func NewOtelTracer(
 	exporter, err := otlptrace.New(
 		ctx,
 		otlptracehttp.NewClient(
-			otlptracehttp.WithInsecure(),
-			otlptracehttp.WithEndpoint(collectorURL),
+			otlptracehttp.WithEndpointURL(collectorURL),
 		),
 	)
 	if err != nil {

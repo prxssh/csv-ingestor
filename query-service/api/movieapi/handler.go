@@ -1,6 +1,8 @@
 package movieapi
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,6 +39,7 @@ func (h *Handler) ListMovies(ctx *gin.Context) {
 
 	result, err := h.movieSvc.ListMovies(ctx.Request.Context(), filter)
 	if err != nil {
+		slog.ErrorContext(ctx.Request.Context(), "list movies failed", "error", err)
 		apiutil.InternalError(ctx)
 		return
 	}
@@ -53,7 +56,12 @@ func (h *Handler) GetMovie(ctx *gin.Context) {
 
 	m, err := h.movieSvc.GetMovie(ctx.Request.Context(), uri.ID)
 	if err != nil {
-		apiutil.Error(ctx, http.StatusBadRequest, "invalid movie id")
+		if errors.Is(err, movie.ErrInvalidMovieID) {
+			apiutil.Error(ctx, http.StatusBadRequest, "invalid movie id")
+			return
+		}
+		slog.ErrorContext(ctx.Request.Context(), "get movie failed", "movie_id", uri.ID, "error", err)
+		apiutil.InternalError(ctx)
 		return
 	}
 	if m == nil {

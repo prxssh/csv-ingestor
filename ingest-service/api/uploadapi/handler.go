@@ -134,6 +134,8 @@ func (h *Handler) CompleteMultipartUpload(ctx *gin.Context) {
 			"error",
 			err,
 		)
+		apiutil.InternalError(ctx)
+		return
 	}
 
 	apiutil.Success(ctx, http.StatusOK, resp)

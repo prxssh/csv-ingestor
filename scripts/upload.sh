@@ -13,13 +13,13 @@ divider() { echo "────────────────────�
 upload_part() {
   local file=$1 part_num=$2 offset=$3 bytes=$4 url=$5 job_id=$6
 
-  local etag
-  etag=$(dd if="$file" bs=1 skip="$offset" count="$bytes" 2>/dev/null \
-    | curl -sf -X PUT "$url" \
+  local s3_response etag
+  s3_response=$(dd if="$file" bs=1 skip="$offset" count="$bytes" 2>/dev/null \
+    | curl -s -X PUT "$url" \
         -H "Content-Type: text/csv" \
         --data-binary @- \
-        -D - \
-    | grep -i "^etag:" | tr -d '\r' | awk '{print $2}' | tr -d '"')
+        -D -)
+  etag=$(echo "$s3_response" | grep -i "^etag:" | tr -d '\r' | awk '{print $2}' | tr -d '"')
 
   if [ -z "$etag" ]; then
     return 1
@@ -156,9 +156,15 @@ flow_success() {
 
   echo "Initializing multipart upload..."
   local init_response
-  init_response=$(curl -sf -X POST "$BASE_URL/v1/uploads/multipart/init" \
+  init_response=$(curl -s -X POST "$BASE_URL/v1/uploads/multipart/init" \
     -H "Content-Type: application/json" \
     -d "{\"filename\":\"$filename\",\"content_type\":\"text/csv\",\"total_size\":$file_size}")
+
+  if [ "$(echo "$init_response" | jq -r '.status')" != "success" ]; then
+    echo "Error: init failed — $(echo "$init_response" | jq -r '.error // .message // "unknown error"')"
+    echo "Response: $init_response"
+    exit 1
+  fi
 
   local job_id
   job_id=$(echo "$init_response" | jq -r '.data.job_id')
@@ -196,12 +202,12 @@ flow_resumeable() {
       exit 0
     fi
 
-    # Pre-fill etags for completed parts
+    # Pre-fill etags for completed parts (use index assignment to keep positions stable)
     for i in $(seq 0 $((total_parts - 1))); do
       local part_num=$((i + 1))
       local existing_etag
       existing_etag=$(echo "$status_response" | jq -r ".data.Parts[] | select(.PartNumber == $part_num and .Status == \"completed\") | .ETag")
-      etags+=("${existing_etag:-}")
+      etags[$i]="${existing_etag:-}"
     done
 
     local pending_parts
@@ -269,9 +275,15 @@ flow_resumeable() {
 
     echo "Initializing multipart upload..."
     local init_response
-    init_response=$(curl -sf -X POST "$BASE_URL/v1/uploads/multipart/init" \
+    init_response=$(curl -s -X POST "$BASE_URL/v1/uploads/multipart/init" \
       -H "Content-Type: application/json" \
       -d "{\"filename\":\"$filename\",\"content_type\":\"text/csv\",\"total_size\":$file_size}")
+
+    if [ "$(echo "$init_response" | jq -r '.status')" != "success" ]; then
+      echo "Error: init failed — $(echo "$init_response" | jq -r '.error // .message // "unknown error"')"
+      echo "Response: $init_response"
+      exit 1
+    fi
 
     job_id=$(echo "$init_response" | jq -r '.data.job_id')
     echo "$job_id" > "$state_file"

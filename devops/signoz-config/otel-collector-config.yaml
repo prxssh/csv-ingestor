@@ -23,7 +23,7 @@ processors:
 
 exporters:
   clickhouselogsexporter:
-    dsn: tcp://clickhouse:9000?username=signoz&password=signoz123&database=signoz
+    dsn: tcp://clickhouse:9000?username=signoz&password=signoz123&database=signoz_logs
     timeout: 5s
     sending_queue:
       queue_size: 100
@@ -34,7 +34,7 @@ exporters:
       max_elapsed_time: 300s
 
   clickhousetraces:
-    datasource: tcp://clickhouse:9000?username=signoz&password=signoz123&database=signoz
+    datasource: tcp://clickhouse:9000?username=signoz&password=signoz123&database=signoz_traces
     timeout: 5s
     sending_queue:
       queue_size: 100
@@ -45,7 +45,7 @@ exporters:
       max_elapsed_time: 300s
 
   clickhousemetricswrite:
-    endpoint: tcp://clickhouse:9000?username=signoz&password=signoz123&database=signoz
+    endpoint: tcp://clickhouse:9000?username=signoz&password=signoz123&database=signoz_metrics
     timeout: 5s
 
 extensions:

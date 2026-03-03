@@ -74,7 +74,7 @@ func (r *Repository) batchUpsert(
 		return 0, 0, fmt.Errorf("batch upsert movies: %w", err)
 	}
 
-	return result.UpsertedCount + result.InsertedCount, result.ModifiedCount, nil
+	return result.UpsertedCount, result.ModifiedCount, nil
 }
 
 func (r *Repository) createIndexes(ctx context.Context) error {
