@@ -145,7 +145,7 @@ docker compose -f devops/docker-compose.yml up -d \
 
 ### API — Postman Collection
 
-A ready-to-use collection covering all endpoints is provided [data/CSV Service Postman Collection.postman_collection.json | here](data/CSV%20Service%20Postman%20Collection.postman_collection.json)
+A ready-to-use collection covering all endpoints is provided [here](data/CSV%20Service%20Postman%20Collection.postman_collection.json)
 
 Import into Postman, set the `base_url` variable to `http://localhost`, and run requests in order: **Init → Upload Parts → Report Parts → Complete → Query**.
 
